@@ -8,6 +8,7 @@
 #include "graphicsShaders.h"
 #include "file_helper.h"
 #include "../math/mathMatrix.h"
+#include "custom_obj_loader.h"
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "tinyobj_loader_c.h"
 
@@ -75,13 +76,16 @@ void _3D(drawObject *dO) {
 }
 
 drawObject uploadObject() {
-    // Parse an OBJ file
+//    // Parse an OBJ file
     shapeObj so;
-    parseObj("cornell_box.obj", "cornell_box.mtl", &so);
-    tinyobj_shape_t sa[so.nshapes];
-    for(int i = 0; i < so.nshapes; ++i) {
-        sa[i] = so.shapes[i];
-    }
+//    parseObj("cornell_box.obj", "cornell_box.mtl", &so);
+//    tinyobj_shape_t sa[so.nshapes];
+//    for(int i = 0; i < so.nshapes; ++i) {
+//        sa[i] = so.shapes[i];
+//    }
+    
+    parseObjFileVerticies("cornell_box.obj");
+    
     // Bind a vertex array object
     GLuint vao;
     glGenVertexArrays(1, &vao);
