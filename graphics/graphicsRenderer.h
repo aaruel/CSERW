@@ -11,6 +11,7 @@
 
 #include "../main_structs.h"
 
-drawObject uploadObject();
+drawObject uploadObject(const char * fileLocation);
+void _3D(drawObject *dO);
 
 #endif /* defined(__CSERW__graphicsRenderer__) */

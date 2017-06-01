@@ -6,11 +6,11 @@
 #include "graphicsRenderer.h"
 #include "../main_header.h"
 #include "graphicsShaders.h"
+#include "lodepng.h"
+#define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "file_helper.h"
 #include "../math/mathMatrix.h"
 #include "custom_obj_loader.h"
-#define TINYOBJ_LOADER_C_IMPLEMENTATION
-#include "tinyobj_loader_c.h"
 
 typedef struct {
     tinyobj_attrib_t attr;
@@ -57,10 +57,10 @@ void parseObj(const char *objFilename,
     deleteFileBuffer(&mtl);
 }
 
-void destroytinyobj(shapeObj *so) {
-    tinyobj_attrib_free(&so->attr);
-    tinyobj_shapes_free(so->shapes, so->nshapes);
-    tinyobj_materials_free(so->mout, so->nmat);
+void destroytinyobj(compositeWavefrontObj *so) {
+    tinyobj_attrib_free(so->attrib);
+    tinyobj_shapes_free(*so->shapes, *so->num_shapes);
+    tinyobj_materials_free(*so->materials, *so->num_materials);
 }
 
 void _3D(drawObject *dO) {
@@ -75,16 +75,39 @@ void _3D(drawObject *dO) {
     glUniformMatrix4fv(glGetUniformLocation(dO->programID,"MVP"),1, GL_FALSE, &MVP0.main.iter[0]);
 }
 
-drawObject uploadObject() {
-//    // Parse an OBJ file
-    shapeObj so;
-//    parseObj("cornell_box.obj", "cornell_box.mtl", &so);
-//    tinyobj_shape_t sa[so.nshapes];
-//    for(int i = 0; i < so.nshapes; ++i) {
-//        sa[i] = so.shapes[i];
-//    }
+drawObject uploadObject(const char * fileLocation) {
+    // Parse an OBJ file
+    compositeWavefrontObj com;
+    parseObjFileVerticies(fileLocation, &com);
     
-    parseObjFileVerticies("cornell_box.obj");
+    // vertices * 3 = #elements
+    com.attrib->num_vertices  *= 3;
+    com.attrib->num_texcoords *= 2;
+    com.attrib->num_normals   *= 3;
+    
+    GLuint *indicies = malloc(sizeof(GLuint) * com.attrib->num_faces);
+    GLuint *normalin = malloc(sizeof(GLuint) * com.attrib->num_faces);
+    GLuint *textures = malloc(sizeof(GLuint) * com.attrib->num_faces);
+    
+    // get indicies
+    size_t face_offset = 0;
+    for (int i = 0; i < com.attrib->num_face_num_verts; ++i) {
+        assert(com.attrib->face_num_verts[i] % 3 == 0);
+        
+        indicies[face_offset + 0] = (com.attrib->faces)[face_offset + 0].v_idx;
+        indicies[face_offset + 1] = (com.attrib->faces)[face_offset + 1].v_idx;
+        indicies[face_offset + 2] = (com.attrib->faces)[face_offset + 2].v_idx;
+        
+        normalin[face_offset + 0] = (com.attrib->faces)[face_offset + 0].vn_idx;
+        normalin[face_offset + 1] = (com.attrib->faces)[face_offset + 1].vn_idx;
+        normalin[face_offset + 2] = (com.attrib->faces)[face_offset + 2].vn_idx;
+        
+        textures[face_offset + 0] = (com.attrib->faces)[face_offset + 0].vt_idx;
+        textures[face_offset + 1] = (com.attrib->faces)[face_offset + 1].vt_idx;
+        textures[face_offset + 2] = (com.attrib->faces)[face_offset + 2].vt_idx;
+        
+        face_offset += (size_t)com.attrib->face_num_verts[i];
+    }
     
     // Bind a vertex array object
     GLuint vao;
@@ -95,27 +118,70 @@ drawObject uploadObject() {
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, so.attr.num_vertices*sizeof(GL_FLOAT), so.attr.vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, com.attrib->num_vertices*sizeof(GLfloat), com.attrib->vertices, GL_STATIC_DRAW);
     
-    // copy index buffer data
-//    GLuint ebo;
-//    glGenBuffers(1,&ebo);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+    // copy UV data
+    GLuint uvo;
+    glGenBuffers(1, &uvo);
+    glBindBuffer(GL_ARRAY_BUFFER, uvo);
+    glBufferData(GL_ARRAY_BUFFER, com.attrib->num_texcoords*sizeof(GLfloat), com.attrib->texcoords, GL_STATIC_DRAW);
+    
+    // copy normal data
+    GLuint nvo;
+    glGenBuffers(1, &nvo);
+    glBindBuffer(GL_ARRAY_BUFFER, nvo);
+    glBufferData(GL_ARRAY_BUFFER, com.attrib->num_normals*sizeof(GLfloat), com.attrib->normals, GL_STATIC_DRAW);
+    
+    // copy vertex indicies data
+    GLuint vibo;
+    glGenBuffers(1, &vibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, com.attrib->num_faces*sizeof(GLuint), indicies, GL_STATIC_DRAW);
+    
+    GLuint vto;
+    glGenTextures(1, &vto);
+    glBindTexture(GL_TEXTURE_2D, vto);
+    
+    {
+        char * filename = (*com.materials)->diffuse_texname;
+        unsigned char * image;
+        unsigned int height = 512;
+        unsigned int width  = 256;
+        if (1) {
+            filename[strlen(filename)-1] = '\0';
+            unsigned int error = lodepng_decode32_file(&image, &width, &height, filename);
+            if (!error) {
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_NEAREST = no smoothing
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+            }
+            else {
+                printf("error %u: %s\n", error, lodepng_error_text(error));
+            }
+            free(image);
+        }
+    }
     
     // get attribute position contrast to using the explicit shader location syntax
     GLuint program = compileShaders("vShader.vert", "fShader.frag");
-    GLint posAttrib = glGetAttribLocation(program, "position");
-    //GLint colAttrib = glGetAttribLocation(program, "color");
+    drawObject DO = {
+        program,
+        vbo,
+        vao,
+        uvo,
+        nvo,
+        vibo,
+        vto,
+        com.attrib->num_vertices,
+        com.attrib->num_faces
+    };
     
-    // set shader attributes
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(posAttrib);
-    
-    destroytinyobj(&so);
-    drawObject DO = {program, vbo, vao, 0, so.attr.num_vertices};
-    
+    // initialize shader attribs
     _3D(&DO);
     
+    destroytinyobj(&com);
+    free(indicies);
+    free(normalin);
+    free(textures);
     return DO;
 }

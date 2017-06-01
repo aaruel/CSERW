@@ -16,11 +16,15 @@ fileObj loadFileBuffer(const char* fileLocation) {
     // figure out file length
     fseek(fo.fp, 0, SEEK_END);
     fo.buflen = ftell(fo.fp);
+    rewind(fo.fp);
+    
     // allocate buffer=filelength+null terminator
-    fseek(fo.fp, fo.buflen, SEEK_SET);
-    // read data into buffer
-    fread(fo.buffer, fo.buflen, 1, fo.fp);
-    fo.buffer = fo.fp->_p;
+    fo.buffer = malloc(sizeof(char) * fo.buflen);
+    if (!fo.buffer) { printf("breh ur memory is rip"); return fo; }
+    
+    const int result = (const int)fread(fo.buffer, 1, fo.buflen, fo.fp);
+    if (result != fo.buflen) { printf("wtf the file is shit tbh"); return fo; };
+    
     return fo;
 }
 

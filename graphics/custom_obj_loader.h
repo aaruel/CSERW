@@ -8,6 +8,11 @@
 
 #include "../utils/file_helper.h"
 
-fileObj parseObjFileVerticies(const char * filename);
+typedef struct {
+    float * base;
+    unsigned int size;
+} vertexObject;
+
+void parseObjFileVerticies(const char * filename, compositeWavefrontObj * com);
 
 #endif /* defined(__CSERW__custom_obj_loader__) */
