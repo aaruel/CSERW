@@ -1,17 +1,13 @@
 #version 410 core
 
 in vec3 position;
-in vec3 color;
-out vec3 Color;
+in vec2 UV_coordinates;
+out vec2 Uvs;
 
 uniform mat4 MVP;
-//uniform mat4 M;
-//uniform mat4 V;
-//uniform mat4 P;
-
 
 void main()
 {
-    Color = color;
+    Uvs = UV_coordinates;
     gl_Position = MVP*vec4(position, 1.0);
 }
