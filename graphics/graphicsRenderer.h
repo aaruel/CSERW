@@ -12,6 +12,7 @@
 #include "../main_structs.h"
 
 drawObject uploadObject(const char * fileLocation);
+drawObject uploadObject2(const char * fileLocation);
 void _3D(drawObject *dO);
 
 #endif /* defined(__CSERW__graphicsRenderer__) */
