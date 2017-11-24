@@ -58,30 +58,10 @@ GLFWwindow *getWindowAddr() {
 
 void main_graphicsLoop() {
 //    drawObject dO = uploadObject("cube.obj");
-    drawObject dO = uploadObject2("uv_sphere.obj");
+    drawObject dO = uploadObject("uv_sphere.obj");
     glfwSetWindowUserPointer(window, &dO);
     float currentTime=0, lastTime=0;
     glfwSetCursorPos(window, CENTER_LENGTH, CENTER_HEIGHT);
-    
-    GLint posAttrib = glGetAttribLocation(dO.programID, "position");
-    GLuint uvsAttrib = glGetAttribLocation(dO.programID, "UV_coordinates");
-    
-    /*  SHADER LOADING  */
-        
-    // Bind our texture in Texture Unit 0
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, dO.vto);
-    glUniform1d(glGetAttribLocation(dO.programID, "sampler"), 0);
-    
-    glEnableVertexAttribArray(posAttrib);
-    glBindBuffer(GL_ARRAY_BUFFER, dO.vbo);
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    
-    glEnableVertexAttribArray(uvsAttrib);
-    glBindBuffer(GL_ARRAY_BUFFER, dO.uvo);
-    glVertexAttribPointer(uvsAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    
-    /*  --------------  */
     
     while(!glfwWindowShouldClose(window)){
         currentTime = glfwGetTime();

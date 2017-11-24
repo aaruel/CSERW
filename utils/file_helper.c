@@ -20,10 +20,10 @@ fileObj loadFileBuffer(const char* fileLocation) {
     
     // allocate buffer=filelength+null terminator
     fo.buffer = malloc(sizeof(char) * fo.buflen);
-    if (!fo.buffer) { printf("breh ur memory is rip"); return fo; }
+    if (!fo.buffer) { return fo; }
     
     const int result = (const int)fread(fo.buffer, 1, fo.buflen, fo.fp) + 1;
-    if (result != fo.buflen) { printf("wtf the file is shit tbh"); return fo; };
+    if (result != fo.buflen) { return fo; };
     
     return fo;
 }
